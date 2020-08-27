@@ -1,0 +1,33 @@
+#skoring
+kata.positif <- scan("katapositif.txt",what="character",comment.char=";")
+kata.negatif <- scan("katanegatif.txt",what="character",comment.char=";")
+score.sentiment = function(docs, kata.positif, kata.negatif, .progress='none')
+{
+  require(plyr)
+  require(stringr)
+  scores = laply(docs, function(kalimat, kata.positif, kata.negatif) {
+    kalimat = gsub('[[:punct:]]', '', kalimat)
+    kalimat = gsub('[[:cntrl:]]', '', kalimat)
+    kalimat = gsub('\\d+', '', kalimat)
+    kalimat = tolower(kalimat)
+    
+    list.kata = str_split(kalimat, '\\s+')
+    kata2 = unlist(list.kata)
+    positif.matches = match(kata2, kata.positif)
+    negatif.matches = match(kata2, kata.negatif)
+    positif.matches = !is.na(positif.matches)
+    negatif.matches = !is.na(negatif.matches)
+    score = sum(positif.matches) - (sum(negatif.matches))
+    return(score)
+  }, kata.positif, kata.negatif, .progress=.progress )
+  scores.df = data.frame(score=scores, text=docs)
+  return(scores.df)
+}
+
+#Load packages
+library(plyr)
+library(stringr)
+
+#hasil
+hasil = score.sentiment(docs, kata.positif, kata.negatif)
+View(hasil)
