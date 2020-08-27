@@ -1,0 +1,57 @@
+hasil$klasifikasi <- as.factor(hasil$klasifikasi)
+
+corpus <- Corpus(VectorSource(hasil$text))
+corpus
+
+dtm <- DocumentTermMatrix(corpus)
+#inspect the dtm
+inspect(dtm[40:50,10:15])
+dim(dtm)
+
+##pembagian data 80% training 20% testing
+#hasil
+rows<-1:round(nrow(hasil)*0.80)
+hasil.train<-as.data.frame(hasil[rows,])
+hasil.test<-as.data.frame(hasil[-rows,])
+#dtm
+rows<-1:round(nrow(dtm)*0.80)
+dtm.train<-dtm[rows,]
+dtm.test<-dtm[-rows,]
+#corpus (train dan test tergantung berapa persen banyak data yang anda ambil)
+corpus.train <- corpus[1:19234]
+corpus.test <- corpus[19235:24042]
+
+dim(dtm.train)
+
+fivefreq <- findFreqTerms(dtm.train, 5)
+fivefreq
+
+dtm.train.nb <- DocumentTermMatrix(corpus.train, control = list(dictionary = fivefreq))
+dim(dtm.train.nb)
+
+dtm.test.nb <- DocumentTermMatrix(corpus.test, control = list(dictionary = fivefreq))
+dim(dtm.test.nb)
+
+#function to convert the word frequencies to yes (presence) and no (absence)
+convert_count <- function(x) {
+  y <- ifelse(x > 0,1,0)
+  y <- factor(y, levels = c(0,1), labels = c("No","Yes"))
+  y
+}
+
+trainNB <- apply(dtm.train.nb, 2, convert_count)
+testNB <- apply(dtm.test.nb, 2, convert_count)
+
+library(e1071)
+classifier <- naiveBayes(trainNB, hasil.train$klasifikasi, laplace = 1)
+pred <- predict(classifier, newdata = testNB)
+
+tp <- table("Prediction"=pred, "Actual"=hasil.test$klasifikasi)
+
+round(100*prop.table(tp, 1),2)
+library(caret)
+conf.mat <- confusionMatrix(pred, hasil.test$klasifikasi)
+conf.mat
+conf.mat$byClass
+conf.mat$overall
+conf.mat$overall['Accuracy']
