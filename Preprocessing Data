@@ -1,0 +1,1006 @@
+#Sebelumnya perlu menginstall beberapa package yang ada dibawah ini
+#Load package
+library("NLP")
+library("tm")
+library("tmap")
+library("SnowballC")
+library("RColorBrewer")
+library("stringr")
+library("tidytext")
+library("tokenizers")
+library("stopwords")
+
+#Menampilkan Data
+data
+docs <- data$tweet
+
+#Menghilangkan Extra White Spaces (Spasi yang Ganda)
+docs <- stripWhitespace(docs)
+
+#1 Menghapus Tanda Baca
+for(j in seq(docs)){
+  docs[[j]] = gsub("@\\w+", " ", docs[[j]])
+  docs[[j]] = gsub("[[:punct:]]", " ", docs[[j]])
+  docs[[j]] = gsub("[[:digit:]]", " ", docs[[j]])
+  docs[[j]] = gsub("http.* *", "", docs[[j]])
+  docs[[j]] = gsub("http.*\\s*", "", docs[[j]])
+  docs[[j]] = gsub("http.\\S+\\s*", "", docs[[j]])
+  docs[[j]] = gsub("http[^ ]*", "", docs[[j]])
+  docs[[j]] = gsub("http\\w+", "", docs[[j]])
+  docs[[j]] = gsub("[ \t]{2,}", " ", docs[[j]])
+  docs[[j]] = gsub("^\\s+|\\s+$", " ", docs[[j]])
+  docs[[j]] = gsub("pic.* *", "", docs[[j]])
+  docs[[j]] = gsub("pic.\\w+", "", docs[[j]])
+  docs[[j]] = gsub("pic.*\\s*", "", docs[[j]])
+  docs[[j]] = gsub("pic.\\S+\\s*", "", docs[[j]])
+  docs[[j]] = gsub("pic.[^ ]*", "", docs[[j]])
+  docs[[j]] = gsub("[^\x01-\x7F]", "", docs[[j]])
+}
+
+#2 Mengubah Huruf Menjadi Non Kapital
+docs <- tolower(docs)
+
+#3 Mengubah Kata
+#bisa menambahkan beberpa kata yang perlu diganti lagi oleh anda
+for(j in seq(docs)){
+  docs[[j]] <- gsub("blm","belum",docs[[j]])
+  docs[[j]] <- gsub("krn","karena",docs[[j]])
+  docs[[j]] <- gsub("tdk","tidak",docs[[j]])
+  docs[[j]] <- gsub("bagos","bagus",docs[[j]])
+  docs[[j]] <- gsub("yg","yang",docs[[j]])
+  docs[[j]] <- gsub("pengen","ingin",docs[[j]])
+  docs[[j]] <- gsub("ngga","tidak",docs[[j]])
+  docs[[j]] <- gsub("gak","tidak",docs[[j]])
+  docs[[j]] <- gsub("klo","kalau",docs[[j]])
+  docs[[j]] <- gsub("pgn","ingin",docs[[j]])
+  docs[[j]] <- gsub("sgt","sangat",docs[[j]])
+  docs[[j]] <- gsub("bgt","banget",docs[[j]])
+  docs[[j]] <- gsub("pingin","ingin",docs[[j]])
+  docs[[j]] <- gsub("dr","dari",docs[[j]])
+  docs[[j]] <- gsub("utk","untuk",docs[[j]])
+  docs[[j]] <- gsub("jg","juga",docs[[j]])
+  docs[[j]] <- gsub("tp","tapi",docs[[j]])
+  docs[[j]] <- gsub("mw","mau",docs[[j]])
+  docs[[j]] <- gsub("skrg","sekarang",docs[[j]])
+  docs[[j]] <- gsub("cangtip","cantik",docs[[j]])
+  docs[[j]] <- gsub("lg","lagi",docs[[j]])
+  docs[[j]] <- gsub("mnrt","menurut",docs[[j]])
+  docs[[j]] <- gsub("cm","cuma",docs[[j]])
+  docs[[j]] <- gsub("idk","i don't know",docs[[j]])
+  docs[[j]] <- gsub("emg","memang",docs[[j]])
+  docs[[j]] <- gsub("kalo","kalau",docs[[j]])
+  docs[[j]] <- gsub("kuy","ayo",docs[[j]])
+  docs[[j]] <- gsub("tak","tidak",docs[[j]])
+  docs[[j]] <- gsub("janlup","jangan lupa",docs[[j]])
+  docs[[j]] <- gsub("maap","maaf",docs[[j]])
+  docs[[j]] <- gsub("ngikutin","mengikuti",docs[[j]])
+  docs[[j]] <- gsub("hrs","harus",docs[[j]])
+  docs[[j]] <- gsub("dg","dengan",docs[[j]])
+  docs[[j]] <- gsub("dgr","dengar",docs[[j]])
+}
+
+#4 Menghapus Stopwords (Kata-Kata Tidak Berpengaruh/Tidak Informatif)
+#install terlebih dahulu package nya
+#Load package
+library(stopwords)
+mystopwords = stopwords(language = "id", source = "nltk")
+mystopwords
+docs <- removeWords(docs, mystopwords)
+mystopwords2 = stopwords("en")
+mystopwords2
+docs <- removeWords(docs, mystopwords2)
+
+#Menghilangkan Extra White Spaces (Spasi yang Ganda)
+docs <- stripWhitespace(docs)
+
+#5 Proses Stemming (Pengambilan Kata Dasar)
+#Load Package
+library(textclean)
+library(tokenizers)
+library(RColorBrewer)
+library(wordcloud)
+
+#Kata dasar (bahasa Indonesia)
+is_katadasar <- function(kata, kamus=NULL) {l
+  if ( is.null(kamus) ) {
+    kata_dasar <- unique(kamus_katadasar)
+  } else if ( is.vector(kamus) ) {
+    kata_dasar <- unique(c(kamus_katadasar, kamus))
+  } else {
+    stop("Kamus harus berupa vektor!")
+  }
+  b <- !is.na(match(kata, kata_dasar))
+  return(b)
+}
+#Hapus Akhiran
+HapusAkhiran <- function(kata) {
+  if ( grepl("[A-Za-z]+([kl]ah|pun|ku|mu|nya)$", kata) ) {
+    kata1 <- sub("([klt]ah|pun|ku|mu|nya)$","",kata)
+    if ( grepl("[A-Za-z]+([kl]ah|pun)$", kata) ) {
+      kata1 <- HapusAkhiranKepunyaan(kata1)
+    }
+  } else {
+    kata1 <- kata
+  }
+  kata1
+}
+HapusAkhiranKepunyaan <- function(kata) {
+  if ( grepl("[A-Za-z]+(nya|[km]u)$", kata) ) {
+    kata = sub("(nya|[km]u)$","",kata)
+  }
+  kata
+}
+HapusAkhiranIAnKan <- function(kata) {
+  if ( grepl("(kan)$", kata) ) {
+    kata1 <- sub("(an)$", "", kata)
+    if ( is_katadasar(kata1) ) {
+      kata <- kata1
+    }
+  }
+  if ( grepl("(kan)$", kata) ) {
+    kata2 <- sub("(kan)$", "", kata)
+    if ( is_katadasar(kata2) ) {
+      kata <- kata2
+    }
+  }
+  if ( grepl("(i|[^k]an)$", kata) ) {
+    kata3 <- sub("(i|an)$", "", kata)
+    if ( is_katadasar(kata3) ) {
+      kata <- kata3
+    }
+  }
+  return(kata)
+}
+#Hapus Awalan
+HapusAwalanDiKeSe <- function(kata) {
+  if ( grepl("^(di|[ks]e)", kata) ) {
+    kata1 <- sub("^(di|[ks]e)", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+}
+HapusAwalanDi2 <- function(kata) {
+  # diper-
+  if ( grepl("^diper", kata) ) {
+    kata1 <- sub("^diper", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^diper", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # diter-
+  if ( grepl("^diter", kata) ) {
+    kata1 <- sub("^diter", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^diter", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # dipel-
+  if ( grepl("^dipel", kata) ) {
+    kata1 <- sub("^dipel", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^dipel", "l", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # diber-
+  if ( grepl("^diber", kata) ) {
+    kata1 <- sub("^diber", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^diber", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+}
+HapusAwalanKe2 <- function(kata) {
+  # keber-
+  if ( grepl("^keber", kata) ) {
+    kata1 <- sub("^keber", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^keber", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # keter-
+  if ( grepl("^keter", kata) ) {
+    kata1 <- sub("^keter", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^keter", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # kese-
+  if ( grepl("^kese", kata) ) {
+    kata1 <- sub("^kese", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # ketidak-
+  if ( grepl("^ketidak", kata) ) {
+    kata1 <- sub("^ketidak", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+}
+HapusAwalanBe <- function(kata) {
+  if ( grepl("^be", kata) ) {
+    if ( grepl("^ber[aiueo]", kata) ) {
+      kata1 <- sub("^ber", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^ber","r", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ber[^aiueor][A-Za-z](?!er)", kata, perl=T) ) {
+      kata1 <- sub("^ber", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ber[^aiueor][A-Za-z]er[aiueo]", kata) ) {
+      kata1 <- sub("^ber", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^bel", kata) ) { ## belajar
+      kata1 <- sub("^bel", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^be[^aiueor]er[^aiueo]", kata) ) { ## bekerja
+      kata1 <- sub("^be", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ber[^aiueor]", kata ) ) {
+      kata1 <- sub("^ber", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+  }
+}
+HapusAwalanTe <- function(kata) {
+  if ( grepl("^te", kata) ) {
+    if ( grepl("^terr", kata) ) {
+      return(kata)
+    }
+    if ( grepl("^ter[aioue]", kata) ) { ## terindah, terindang
+      kata1 <- sub("^ter","r", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^ter", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ter[^aiueor]er[aiueo]", kata) ) { ## terserah
+      kata1 <- sub("^ter", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ter[^aiueor](?!er)", kata, perl=T) ) { ## terkaya
+      kata1 <- sub("^ter", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^te[^aiueor]er[aiueo]", kata) ) {
+      kata1 <- sub("^te", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^ter[^aiueor]er[^aiueo]", kata) ) { #terjerat
+      kata1 <- sub("^ter", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+  }
+}
+HapusAwalanMe <- function(kata) {
+  if ( grepl("^me", kata) ) {
+    if (grepl("^me[lrwyv][aiueo]", kata) ) {
+      kata1 <- sub("^me", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^mem[bfvp]", kata) ) {
+      kata1 <- sub("^mem", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^memr?[aiueo]", kata) ) {
+      kata1 <- sub("^mem", "m", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^mem", "p", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^men[cdjszt]", kata) ) {
+      kata1 <- sub("^men", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^men[aiueo]", kata) ) {
+      kata1 <- sub("^men", "n", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^men", "t", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^meng[ghqk]", kata) ) {
+      kata1 <- sub("^meng", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^meng[aiueo]", kata) ) {
+      kata1 <- sub("^meng", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^meng", "k", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^menge", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if (grepl("^meny[aiueo]", kata) ) {
+      kata1 <- sub("^meny", "s", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^me", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+  }
+}
+HapusAwalanPe <- function(kata) {
+  if ( grepl("^pe", kata) ) {
+    if ( grepl("^pe[wy]", kata) ) {
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^per[aiueo]", kata) ) {
+      kata1 <- sub("^per", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^per", "r", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^per[^aiueor][A-Za-z](?!er)", kata, perl=T) ) {
+      kata1 <- sub("^per", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^per[^aiueor][A-Za-z](er)[aiueo]", kata) ) {
+      kata1 <- sub("^per", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pem[bfv]", kata) ) {
+      kata1 <- sub("^pem", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pemr?[aiueo]", kata) ) {
+      kata1 <- sub("^pem", "m", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^per", "p", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pen[cdjzt]", kata) ) {
+      kata1 <- sub("^pen", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pen[aiueo]", kata) ) {
+      kata1 <- sub("^pen", "n", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^pen", "t", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^(peng)[^aiueo]", kata) ) {
+      kata1 <- sub("^peng", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^(peng)[aiueo]", kata) ) {
+      kata1 <- sub("^peng", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^peng", "k", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^penge", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^peny[aiueo]", kata) ) {
+      kata1 <- sub("^peny", "s", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pel[aiueo]", kata) ) {
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+      kata1 <- sub("^pel", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pe[^rwylmn]er[aiueo]", kata) ) {
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pe[^rwylmn](?!er)", kata, perl=T) ) {
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+    if ( grepl("^pe[^aiueo]er[^aiueo]", kata) ) {
+      kata1 <- sub("^pe", "", kata)
+      if ( is_katadasar(kata1) ) {
+        return(kata1)
+      }
+      kata2 <- HapusAkhiranIAnKan(kata1)
+      if ( is_katadasar(kata2) ) {
+        return(kata2)
+      }
+    }
+  }
+}
+HapusAwalanMe2 <- function(kata) {
+  # memper-
+  if ( grepl("^memper", kata) ) {
+    kata1 <- sub("^memper", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^memper", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # mempel-
+  if ( grepl("^mempel", kata) ) {
+    kata1 <- sub("^mempel", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^mempel", "l", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # menter-
+  if ( grepl("^menter", kata) ) {
+    kata1 <- sub("^menter", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^menter", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+  # menber-
+  if ( grepl("^menber", kata) ) {
+    kata1 <- sub("^menber", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+    kata1 <- sub("^menber", "r", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+}
+HapusAwalanBe2 <- function(kata) {
+  if ( grepl("^berke", kata) ) {
+    kata1 <- sub("^berke", "", kata)
+    if ( is_katadasar(kata1) ) {
+      return(kata1)
+    }
+    kata2 <- HapusAkhiranIAnKan(kata1)
+    if ( is_katadasar(kata2) ) {
+      return(kata2)
+    }
+  }
+}
+HapusAwalan <- function(kata) {
+  if ( grepl("^di|[ks]e", kata) ) {
+    kata1 <- HapusAwalanDiKeSe(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanDi2(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanKe2(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+  }
+  if ( grepl("^[tmbp]e", kata) ) {
+    kata1 <- HapusAwalanBe(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanTe(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanMe(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanPe(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanMe2(kata) # memper-, menter-, dkk
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+    kata1 <- HapusAwalanBe2(kata) # berke-, dkk
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+  }
+}
+# Hapus Sisipan
+HapusSisipan <- function(kata){
+  if ( grepl(".+(er).+", kata) ) {
+    kata1 <- HapusSisipanEr(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+  }
+  if ( grepl(".+(el).+", kata) ) {
+    kata1 <- HapusSisipanEl(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+  }
+  if ( grepl(".+(em).+", kata) ){
+    kata1 <- HapusSisipanEm(kata)
+    if ( !is.null(kata1) ) {
+      return(kata1)
+    }
+  }
+}
+HapusSisipanEr <- function(kata) {
+  kata1 <- sub("(er)", "", kata)
+  if ( is_katadasar(kata1) ) {
+    return(kata1)
+  }
+}
+HapusSisipanEl <- function(kata) {
+  kata1 <- sub("(el)", "", kata)
+  if ( is_katadasar(kata1) ) {
+    return(kata1)
+  }
+}
+HapusSisipanEm <- function(kata) {
+  kata1 <- sub("(em)", "", kata)
+  if ( is_katadasar(kata1) ) {
+    return(kata1)
+  }
+}
+#STEM KALIMAT
+stemKalimat <- function(kalimat) {
+  kalimat <- as.character(kalimat)
+  kalimat_split = strsplit(kalimat, split = " ")
+  kalimat <- ""
+  for(i in kalimat_split[[1]]){
+    kata <- i
+    kata1 <- kata
+    katadasar <- FALSE;
+    if (is_katadasar(kata)) {
+      kalimat <- c(kalimat,kata)
+    } else {
+      kata <- HapusAkhiran(kata)
+      if (!is.null(kata)) {
+        if ( is_katadasar(kata) ) {
+          kalimat <- c(kalimat,kata)
+          katadasar<-TRUE
+        }
+      }
+      if(!katadasar){
+        kata0 <- HapusAkhiranIAnKan(kata)
+        if ( !is.null(kata) ) {
+          if ( is_katadasar(kata) ) {
+            kalimat <- c(kalimat,kata)
+            katadasar<-TRUE
+          } else {
+          }
+        }
+        if(!katadasar){
+          kata0 <- HapusAwalan(kata)
+          if ( !is.null(kata0) ) {
+            if ( is_katadasar(kata0) ) {
+              kalimat <- c(kalimat,kata0)
+              katadasar<-TRUE
+            }
+          }
+          if(!katadasar){
+            kata0 <- HapusSisipan(kata)
+            if ( !is.null(kata0) ) {
+              if ( is_katadasar(kata0) ) {l
+                kalimat <- c(kalimat,kata0)
+                katadasar<-TRUE
+              }
+            }
+            if( !katadasar ){
+              {kalimat <- c(kalimat,kata1)}
+            }
+          }
+        }
+      }
+    }
+  }
+  return(paste(kalimat, collapse=" "))
+}
+# Stemming (Memperoleh kata dasar)
+for(l in seq(docs)){
+  docs[[l]] <- stemKalimat(docs[[l]])
+}
