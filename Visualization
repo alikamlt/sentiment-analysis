@@ -1,0 +1,20 @@
+## plot kelas sentiment
+#CONVERT SCORE TO SENTIMENT
+hasil$klasifikasi<- ifelse(hasil$score<0, "Negatif",ifelse(hasil$score==0,"Netral","Positif"))
+hasil$klasifikasi
+View(hasil)
+# Plot untuk menunjukkan jumlah kelas sentimen
+library(ggplot2)
+Viz1 <- ggplot(hasil, aes(x=klasifikasi))+geom_bar()
+Viz1
+
+## wordcloud
+# Jadikan Korpus (Kumpulan Teks)
+docs <- Corpus(VectorSource(docs))
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+wordcloud(words = d$word, freq = d$freq, min.freq = 20,
+          max.words = 100,
+          colors=brewer.pal(8,"Set1"))
