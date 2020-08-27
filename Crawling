@@ -1,0 +1,29 @@
+#install packages
+install.packages("twitteR")
+install.packages("ROAuth")
+install.packages("RCurl")
+install.packages("expss")
+
+#Load packages
+library(twitteR)
+library(ROAuth)
+library(RCurl)
+library(expss)
+
+download.file(url = "http://curl.haxx.se/ca/cacert.pem",destfile = "cacert.pem")
+
+reqURL = "https://api.twitter.com/oauth/request_token"
+accessURL = "https://api.twitter.com/oauth/access_token"
+customer_key = "fill with customer key"
+customer_secret = "fill with customer secret"
+access_token = "fill with access token"
+access_secret = "fill with access secret"
+
+setup_twitter_oauth(customer_key,customer_secret,access_token,access_secret)
+
+search.string = "fill with keywords that you want to analyze"
+no.of.tweets = 1000 #can be more or less
+keywords.tweet = searchTwitter(search.string, no.of.tweets)
+df_keywords = do.call("rbind", lapply(keywords.tweet, as.data.frame))
+View(df_keywords)
+write.csv(df_keywords)
